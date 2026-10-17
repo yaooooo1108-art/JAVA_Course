@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>學生選課系統 - 第17組</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans TC", Arial; }
+    body { margin: 0; background:#f6f7fb; color:#111; }
+    header { background:#111827; color:#fff; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    header h1 { margin:0; font-size:18px; font-weight:700; }
+    main { max-width: 980px; margin: 18px auto; padding: 0 14px; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; }
+    .card { background:#fff; border-radius:14px; box-shadow:0 6px 22px rgba(0,0,0,.06); padding:14px; }
+    .card h2 { margin:0 0 10px; font-size:16px; }
+    button { border:0; padding:10px 12px; border-radius:10px; cursor:pointer; font-weight:600; }
+    .btn { background:#2563eb; color:#fff; }
+    .btn-outline { background:#fff; border:1px solid #e5e7eb; }
+    .btn-danger { background:#ef4444; color:#fff; }
+    .muted { color:#6b7280; font-size: 13px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:10px 8px; border-bottom:1px solid #eef0f4; }
+    th { font-size:12px; color:#6b7280; text-transform:uppercase; letter-spacing:.03em; }
+    .pill { display:inline-block; padding:3px 8px; border-radius:999px; background:#eef2ff; color:#3730a3; font-size:12px; }
+    .err { margin-top:10px; color:#b91c1c; font-weight:600; }
+    .ok { margin-top:10px; color:#065f46; font-weight:600; }
+
+    .notice { margin-bottom:12px; }
+    .notice .bar { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+    .notice .left { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+    .notice .id { font-weight:700; color:#111827; }
+    .notice .actions { display:flex; gap:8px; flex-wrap:wrap; }
+
+    .topRight { display:flex; align-items:center; gap:10px; }
+    .who { font-size:13px; color:#e5e7eb; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>線上課程平台 - 第17組（學生選課）</h1>
+  <div class="topRight">
+    <div class="who" id="who"></div>
+    <button class="btn-outline" id="logoutBtn">登出</button>
+  </div>
+</header>
+
+<main>
+  <!-- 已刪除「學生那一欄」：登入後直接用 sessionStorage 的 studentId，不再手動選擇學生 -->
+  <section class="card notice">
+    <div class="bar">
+      <div class="left">
+        <div>學生：<span class="id" id="studentLabel"></span></div>
+        <div class="muted">前端呼叫 B:8082，B 再用 WebClient 呼叫 A:8081</div>
+      </div>
+    </div>
+    <!-- 保留加選/退選成功失敗訊息 -->
+    <div id="msg" class=""></div>
+  </section>
+
+  <div class="row" style="margin-top:12px;">
+    <section class="card" style="flex:1; min-width:280px;">
+      <h2>我的選課</h2>
+      <div id="myCourses" class="muted">Loading...</div>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top:12px;">
+    <h2>所有課程</h2>
+    <div class="muted" style="margin-bottom:10px;">點選「加選 / 退選」測試 B → A 串接與檔案紀錄。</div>
+    <div id="courseTableWrap"></div>
+  </section>
+</main>
+
+<script>
+  const API = "http://localhost:8082";
+  let STUDENT_ID = "";
+
+  // ---- login guard + 修正 undefined ----
+ (function guard() {
+  // 相容你原本登入頁可能用的各種 key
+  const get = (...keys) => {
+    for (const k of keys) {
+      const v = sessionStorage.getItem(k);
+      if (v != null && String(v).trim() !== "") return String(v).trim();
+    }
+    return "";
+  };
+
+  const bad = (v) => {
+    const s = (v ?? "").toString().trim();
+    return !s || s.toLowerCase() === "undefined" || s.toLowerCase() === "null";
+  };
+
+  // 1) role 相容：STUDENT / student / 學生
+  const roleRaw = get("ocp.role", "role", "userRole");
+  const role = roleRaw.toUpperCase();
+  const isStudent = (role === "STUDENT") || (roleRaw === "學生");
+
+  if (!isStudent) {
+    // 沒 role 或不是學生：回登入頁
+    location.href = "/";
+    return;
+  }
+
+  // 2) studentId 相容：ocp.studentId / studentId / userId / username...
+  const username = get("ocp.username", "username", "user", "account");
+  const sid = get("ocp.studentId", "studentId", "sid", "userId", "student", username);
+
+  if (bad(sid)) {
+    // 仍然避免畫面出現 undefined：但不要清空整個 session（以免你登入頁還要用）
+    location.href = "/";
+    return;
+  }
+
+  // 3) 套用到頁面
+  STUDENT_ID = sid;
+  document.getElementById("who").textContent =
+    `登入中：${bad(username) ? sid : username}（學生）`;
+  document.getElementById("studentLabel").textContent = sid;
+})();
+
+
+
+
+  document.getElementById("logoutBtn").addEventListener("click", () => {
+    sessionStorage.clear();
+    location.href = "/";
+  });
+
+  const elMyCourses = document.getElementById("myCourses");
+  const elCourseTableWrap = document.getElementById("courseTableWrap");
+  const elMsg = document.getElementById("msg");
+
+  function setMsg(type, text) {
+    elMsg.className = type === "ok" ? "ok" : (type === "err" ? "err" : "");
+    elMsg.textContent = text || "";
+  }
+
+  async function apiGet(path) {
+    const res = await fetch(API + path);
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  async function apiPost(path) {
+    const res = await fetch(API + path, { method: "POST" });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
+  }
+
+  async function loadAllCourses() {
+    const courses = await apiGet("/courses");
+    renderCourseTable(courses);
+  }
+
+  function renderCourseTable(courses) {
+    const rows = courses.map(c => `
+      <tr>
+        <td><span class="pill">#${c.id}</span></td>
+        <td>${c.title}</td>
+        <td>${c.enrolled} / ${c.capacity}</td>
+        <td>
+          <button class="btn" onclick="enroll(${c.id})">加選</button>
+          <button class="btn-danger" onclick="dropCourse(${c.id})">退選</button>
+        </td>
+      </tr>
+    `).join("");
+
+    elCourseTableWrap.innerHTML = `
+      <table>
+        <thead>
+          <tr><th>課程代號</th><th>課程名稱</th><th>已選/上限</th><th>操作</th></tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  async function loadMyEnrollments() {
+    const sid = STUDENT_ID;
+    if (!sid) { elMyCourses.textContent = "尚未登入或 studentId 遺失"; return; }
+
+    const list = await apiGet(`/enrollments/detail?studentId=${encodeURIComponent(sid)}`);
+
+    if (!list.length) {
+      elMyCourses.textContent = "目前沒有選課。";
+      return;
+    }
+
+    elMyCourses.innerHTML = `
+      <ul style="margin:0; padding-left:18px;">
+        ${list.map(c => `<li>#${c.id} ${c.title} (${c.enrolled}/${c.capacity})</li>`).join("")}
+      </ul>
+    `;
+  }
+
+  window.enroll = async function(courseId) {
+    try {
+      setMsg("", "");
+      const sid = STUDENT_ID;
+      const updated = await apiPost(`/enroll?studentId=${encodeURIComponent(sid)}&courseId=${courseId}`);
+      setMsg("ok", `加選成功：courseId=${courseId}, 目前已選=${updated.enrolled}`);
+      await refreshAll();
+    } catch (e) {
+      setMsg("err", "加選失敗： " + e.message);
+    }
+  }
+
+  window.dropCourse = async function(courseId) {
+    try {
+      setMsg("", "");
+      const sid = STUDENT_ID;
+      const updated = await apiPost(`/drop?studentId=${encodeURIComponent(sid)}&courseId=${courseId}`);
+      setMsg("ok", `退選成功：courseId=${courseId}, 目前已選=${updated.enrolled}`);
+      await refreshAll();
+    } catch (e) {
+      setMsg("err", "退選失敗：" + e.message);
+    }
+  }
+
+  async function refreshAll() {
+    await loadAllCourses();
+    await loadMyEnrollments();
+  }
+
+
+  refreshAll();
+</script>
+</body>
+</html>

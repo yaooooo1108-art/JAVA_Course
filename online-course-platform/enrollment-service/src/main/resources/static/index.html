@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>線上課程平台 - 第17組（登入）</title>
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#0f172a;
+      --muted:#94a3b8;
+      --text:#e2e8f0;
+      --border: rgba(148,163,184,.22);
+      --primary:#3b82f6;
+      --danger:#ef4444;
+      --shadow: 0 22px 60px rgba(0,0,0,.45);
+      --radius: 18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Arial, "Noto Sans TC";
+      background:
+        radial-gradient(1000px 600px at 15% 10%, rgba(59,130,246,.22), transparent 60%),
+        radial-gradient(900px 500px at 80% 20%, rgba(34,197,94,.16), transparent 55%),
+        radial-gradient(800px 500px at 50% 110%, rgba(168,85,247,.16), transparent 55%),
+        var(--bg);
+      color:var(--text);
+      display:flex;
+      flex-direction:column;
+    }
+    header{
+      background: rgba(2,6,23,.65);
+      border-bottom: 1px solid rgba(148,163,184,.12);
+      padding:18px 24px;
+      font-weight:700;
+      letter-spacing:.5px;
+    }
+    .wrap{
+      flex:1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:28px 16px;
+    }
+    .card{
+      width:min(440px, 100%);
+      background: rgba(15,23,42,.82);
+      border: 1px solid rgba(148,163,184,.14);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+      overflow:hidden;
+      backdrop-filter: blur(10px);
+    }
+    .cardTop{
+      padding:20px 22px 10px;
+    }
+    .title{
+      margin:0 0 6px;
+      font-size:20px;
+      font-weight:800;
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:13px;
+      line-height:1.6;
+    }
+    .form{
+      padding:14px 22px 22px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    label{
+      font-size:13px;
+      color: var(--muted);
+      display:block;
+      margin: 0 0 6px;
+    }
+    input{
+      width:100%;
+      padding:11px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,.22);
+      background: rgba(2,6,23,.35);
+      color: var(--text);
+      outline: none;
+    }
+    input:focus{
+      border-color: rgba(59,130,246,.7);
+      box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+    }
+    .row{
+      display:flex;
+      gap:10px;
+    }
+    .btn{
+      width:100%;
+      padding:11px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(59,130,246,.6);
+      background: rgba(59,130,246,.18);
+      color: #dbeafe;
+      font-weight:800;
+      cursor:pointer;
+    }
+    .btn:disabled{
+      opacity:.55;
+      cursor:not-allowed;
+    }
+    .hint{
+      font-size:12px;
+      color: var(--muted);
+      line-height:1.6;
+      margin-top:6px;
+    }
+    .error{
+      display:none;
+      padding:10px 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(239,68,68,.5);
+      background: rgba(239,68,68,.12);
+      color: #fecaca;
+      font-size:13px;
+      line-height:1.5;
+    }
+    .footer{
+      padding:0 22px 18px;
+      color: rgba(148,163,184,.8);
+      font-size:12px;
+    }
+    .pill{
+      display:inline-block;
+      padding:2px 8px;
+      border-radius:999px;
+      background: rgba(148,163,184,.12);
+      border:1px solid rgba(148,163,184,.18);
+      margin-right:6px;
+      color: rgba(226,232,240,.85);
+    }
+  </style>
+</head>
+
+<body>
+  <header>線上課程平台 - 第17組（登入）</header>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="cardTop">
+        <p class="title">登入</p>
+        <p class="sub">
+          請使用指定帳密登入。登入成功後會依身份導向：
+          <span class="pill">老師管理系統</span> 或 <span class="pill">學生選課系統</span>
+        </p>
+      </div>
+
+      <form class="form" id="loginForm">
+        <div id="errBox" class="error"></div>
+
+        <div>
+          <label for="username">帳號</label>
+          <input id="username" name="username" placeholder="例如：admin 或 s1121610" autocomplete="username" />
+        </div>
+
+        <div>
+          <label for="password">密碼</label>
+          <input id="password" name="password" type="password" placeholder="請輸入密碼" autocomplete="current-password" />
+        </div>
+
+        <button class="btn" id="loginBtn" type="submit">登入</button>
+
+        <div class="hint">
+          老師：<b>admin / 1234</b><br/>
+          學生：<b>s1121610~s1121615</b>，密碼為 <b>10~15</b>（對應學號尾碼）
+        </div>
+      </form>
+
+      <div class="footer">
+        ※ 本作業為展示用登入驗證（固定帳密），重點在角色分流與微服務流程。
+      </div>
+    </div>
+  </div>
+
+<script>
+  const form = document.getElementById("loginForm");
+  const errBox = document.getElementById("errBox");
+  const btn = document.getElementById("loginBtn");
+
+  function showError(msg){
+    errBox.style.display = "block";
+    errBox.textContent = msg || "登入失敗";
+  }
+  function clearError(){
+    errBox.style.display = "none";
+    errBox.textContent = "";
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearError();
+
+    const username = document.getElementById("username").value.trim();
+    const password = document.getElementById("password").value.trim();
+
+    if (!username || !password) {
+      showError("請輸入帳號與密碼");
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "登入中...";
+
+    try{
+      const res = await fetch("/auth/login", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({ username, password })
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        showError(data.message || "帳號或密碼錯誤");
+        return;
+      }
+
+      // sessionStorage 保存
+      sessionStorage.setItem("ocp.role", data.role);
+      sessionStorage.setItem("ocp.username", data.username);
+
+      // 學生：用 username 當 studentId（例如 s1121610）
+      if (data.role === "STUDENT") {
+        sessionStorage.setItem("ocp.studentId", data.username);
+        window.location.href = "/student.html";
+      } else if (data.role === "TEACHER") {
+        window.location.href = "/teacher.html";
+      } else {
+        showError("登入角色不明");
+      }
+
+    } catch(err){
+      showError("無法連線到伺服器，請確認 enrollment-service 已啟動");
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "登入";
+    }
+  });
+</script>
+</body>
+</html>

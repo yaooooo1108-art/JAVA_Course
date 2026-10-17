@@ -1,0 +1,2 @@
+[2025-12-30 05:10:54] UPDATE_COURSE id=4 title=math capacity=80
+[2025-12-30 05:11:26] CREATE_COURSE id=5 title=Operating Systems capacity=60

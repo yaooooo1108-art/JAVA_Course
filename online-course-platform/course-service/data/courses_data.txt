@@ -1,0 +1,6 @@
+# id,title,capacity,enrolled
+1,Java Programming,60,2
+2,Data Structures,50,2
+3,Database Systems,40,3
+4,math,80,2
+5,Operating Systems,60,0
